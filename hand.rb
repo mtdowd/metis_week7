@@ -1,4 +1,3 @@
-
 class Hand
   attr_reader :name, :playing_cards
 

@@ -1,8 +1,10 @@
 require "csv"
-require "./hotel.rb"
+require "./csv_reader"
+require "./hotel"
+require "./hotel_database"
 
 class Directory
-  attr_reader :file
+  attr_reader :file, :hotels, :hotel_query, :results
 
   def initialize(file)
     @file = file
@@ -10,23 +12,25 @@ class Directory
   end
 
   def run
-    get_hotels(file)
+    get_hotels
     print_hotels
-    get_hotel_query
-    hotel_search
+    loop do
+      get_hotel_query
+      hotel_search
+      display_results
+    end
   end
 
   private
 
-  def get_hotels(file)
-    CSV.foreach(file, :headers => true, :header_converters => :symbol, :converters => :all) do |row|
-      hotel_name = row[:hotel]
-      city = row[:city]
-      phone = row[:phone_number]
-      singles = row[:number_of_singles]
-      doubles = row[:number_of_doubles]
-      @hotels << Hotel.new(hotel_name, city, phone, singles, doubles)
-    end
+  def get_hotels
+    @hotels = CsvReader.new(file).load_hotels
+  end
+
+  def print_hotels
+    print_header
+    puts hotels
+    puts
   end
 
   def print_header
@@ -36,26 +40,17 @@ class Directory
     puts "-" * header.length
   end
 
-  def print_hotels
-    print_header
-    @hotels.each do |hotel|
-      hotel.hotel_basic_info
-    end
-    puts
-  end
-
   def get_hotel_query
     print "What property?: "
-    @search_request = gets.chomp
+    @hotel_query = gets.chomp
   end
 
   def hotel_search
-    query_response = query_search(@search_request)
-    puts query_response.hotel_full_info
+    @results = HotelDatabase.new(hotels).search(hotel_query)
   end
 
-  def query_search(query)
-    return NullObject.new unless @hotels.find { |hotel| hotel.hotel_name == query }
+  def display_results
+    puts results.hotel_full_info
   end
 
 end
